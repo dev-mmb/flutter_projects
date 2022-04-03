@@ -6,12 +6,14 @@ import 'package:http/http.dart' as http;
 import 'package:crypto/crypto.dart';
 import 'dart:convert';
 
+// for localhost: http://10.0.2.2:8080/
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+  LoginScreen(this.onLoggedIn, {Key? key}) : super(key: key);
+
+  Function(String) onLoggedIn;
 
   @override
   State<StatefulWidget> createState() => _LoginScreenState();
-
 }
 
 class _LoginScreenState extends State<LoginScreen> {
@@ -20,6 +22,9 @@ class _LoginScreenState extends State<LoginScreen> {
   String password = "";
   bool hasError = false;
   late Future<String> token = Future<String>(() { return "";});
+
+  @override
+  LoginScreen get widget => super.widget;
 
   @override
   Widget build(BuildContext context) {
@@ -63,7 +68,7 @@ class _LoginScreenState extends State<LoginScreen> {
         color: Colors.red[900]
       ),);
     }
-    // keep hasdata and data != "" seperate so else is not triggered when data == ""
+    // keep hasData and data != "" separate so else is not triggered when data == ""
     if (snapshot.hasData) {
       if (snapshot.data != "") {
         onSuccess(snapshot.data as String);
@@ -95,23 +100,43 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  void login() {
-    token = getToken(email, password);
+  void login() async {
+    token = authenticate(email, password);
     setState(() {});
   }
-  void register() {
+  void register() async {
+    var response = await registerAccount(email, password);
+    if (response != "") {
+      token = authenticate(email, password);
+    }
+    setState(() {});
   }
 
   void onSuccess(String token) {
-    print("Success!!!!!!!!!!!!!!! $token");
+    widget.onLoggedIn(token);
   }
 
-  Future<String> getToken(String email, String password) async {
+  Future<String> authenticate(String email, String password) async {
+    var convertedPassword = md5.convert(utf8.encode(password));
+    var body = {"email": email, "password": convertedPassword.toString()};
+    final response = await http.post(
+        Uri.parse("https://limitless-bastion-9783240.herokuapp.com/account/authenticate"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(body));
+    if (response.statusCode != 200) {
+      hasError = true;
+      return "";
+    }
+
+    return jsonDecode(response.body)["token"];
+  }
+
+  Future<String> registerAccount(String email, String passowrd) async {
     var convertedPassword = md5.convert(utf8.encode(password));
     var body = {"email": email, "password": convertedPassword.toString()};
 
     final response = await http.post(
-        Uri.parse("https://limitless-bastion-9783240.herokuapp.com/account/authenticate"),
+        Uri.parse("https://limitless-bastion-9783240.herokuapp.com/account/create"),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode(body));
 
@@ -119,7 +144,6 @@ class _LoginScreenState extends State<LoginScreen> {
       hasError = true;
       return "";
     }
-
-    return jsonDecode(response.body)["token"];
+    return "Success";
   }
 }
