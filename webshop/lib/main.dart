@@ -33,12 +33,13 @@ class _WebShopState extends State<WebShop> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder(builder: (context, snapshot) {
+    return FutureBuilder<String>(builder: (context, snapshot) {
       if (snapshot.hasError || !snapshot.hasData) {
         return const CircularProgressIndicator();
       }
-      if (snapshot.data != "") {
-        return const ShopScreen();
+      var t = snapshot.data;
+      if (t != null && t != "") {
+        return ShopScreen(t);
       }
       else {
         return LoginScreen(_onLoggedIn);

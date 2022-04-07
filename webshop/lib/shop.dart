@@ -1,10 +1,18 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:webshop/account.dart';
+import 'package:webshop/model/shopping_cart_model.dart';
 import 'package:webshop/shop_items.dart';
 import 'package:webshop/shopping_cart.dart';
+import 'package:webshop/model/shopping_cart_model.dart';
+import 'package:http/http.dart' as http;
+
+import 'model/product_model.dart';
 
 class ShopScreen extends StatefulWidget {
-  const ShopScreen({Key? key}) : super(key: key);
+  ShopScreen(this.token, {Key? key}) : super(key: key);
+  String token;
 
   @override
   State<StatefulWidget> createState() => _ShopScreenState();
@@ -13,30 +21,94 @@ class ShopScreen extends StatefulWidget {
 
 class _ShopScreenState extends State<ShopScreen> {
   List<bool> selectedPage = [true, false, false];
+  ShoppingCartModel cart = ShoppingCartModel("", []);
+
+  void onItemBuy(ProductModel item) {
+    setState(() {
+      cart.addToCart(item);
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    http.get(Uri.parse("https://limitless-bastion-9783240.herokuapp.com/cart"),
+        headers: {"Authorization": "Bearer ${widget.token}"})
+        .then((response) {
+          if (response.statusCode != 200) {
+            throw Exception("Something went wrong trying to get shopping cart!");
+          } else {
+            cart = ShoppingCartModel.fromJson(jsonDecode(response.body));
+          }
+    });
+  }
 
   Widget getSelectedPage() {
     if (selectedPage[0] == true) {
-      return ShopItems();
+      return ShopItems(onItemBuy);
     } else if (selectedPage[1] == true) {
-      return ShoppingCart();
+      return ShoppingCart(cart, widget.token);
     }
-    return Account();
+    return const Account();
   }
+
   void setSelectedPage(int page) {
-    for (int i = 0; i < selectedPage.length; i++) {
-      if (i == page) {
-        selectedPage[i] = true;
+
+    setState(() {
+      for (int i = 0; i < selectedPage.length; i++) {
+        if (i == page) {
+          selectedPage[i] = true;
+        }
+        else {
+          selectedPage[i] = false;
+        }
       }
-      else {
-        selectedPage[i] = false;
-      }
-      setState(() {});
-    }
+    });
+
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(),
+      appBar: AppBar(
+        leading: Builder(
+          builder: (BuildContext context) {
+            return IconButton(
+              icon: Stack(
+                children: [
+                  const Icon(
+                    Icons.menu,
+                    size: 30,
+                  ),
+                  Container(
+                    width: 30,
+                    height: 30,
+                    alignment: Alignment.topRight,
+                    child: Container(
+                      width: 15,
+                      height: 15,
+                      decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: const Color(0xffc32c37),
+                          border: Border.all(color: Colors.white, width: 1)),
+                      child: Padding(
+                        padding: const EdgeInsets.all(0.0),
+                        child: Center(
+                          child: Text(
+                            cart.getSize().toString(),
+                            style: TextStyle(fontSize: 10),
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                ],
+              ),
+              onPressed: () { Scaffold.of(context).openDrawer(); },
+            );
+          },
+        )
+      ),
       drawer: Drawer(
         child: ListView(
           children: [
