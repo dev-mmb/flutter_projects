@@ -1,10 +1,8 @@
 import 'dart:convert';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:crypto/crypto.dart';
-import 'dart:convert';
 
 // for localhost: http://10.0.2.2:8080/
 class LoginScreen extends StatefulWidget {

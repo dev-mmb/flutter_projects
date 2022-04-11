@@ -1,14 +1,14 @@
 import 'dart:convert';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:webshop/model/shopping_cart_model.dart';
 import 'package:http/http.dart' as http;
 
 class ShoppingCart extends StatefulWidget {
-  ShoppingCart(this.cart, this.token, {Key? key}) : super(key: key);
+  ShoppingCart(this.cart, this.token, this.onOrder, {Key? key}) : super(key: key);
   ShoppingCartModel cart;
   String token;
+  Function() onOrder;
 
   @override
   State<StatefulWidget> createState() => _ShoppingCartState();
@@ -29,7 +29,7 @@ class _ShoppingCartState extends State<ShoppingCart> {
 
     final response = await http.post(
       Uri.parse("https://limitless-bastion-9783240.herokuapp.com/cart"),
-      headers: {"Authorization": "bearer ${widget.token}"},
+      headers: {"Authorization": "bearer ${widget.token}", "Content-Type": "application/json"},
       body: jsonEncode(widget.cart.toJson())
     );
 
@@ -55,7 +55,7 @@ class _ShoppingCartState extends State<ShoppingCart> {
     );
   }
   void checkout() {
-
+      widget.onOrder();
   }
   Widget getCartWidgets(ShoppingCartModel? cartModel) {
     if (cartModel == null) return const Text("Cart does not exist!");
@@ -148,13 +148,15 @@ class _ShoppingCartState extends State<ShoppingCart> {
                               ),
                               Padding(
                                 padding: const EdgeInsets.all(10),
-                                child: Text("${product.amount}")
+                                child: Text("${widget.cart.getAmount(product)}")
                               ),
                               SizedBox(
                                 width: _ShoppingCartState.buttonWidth,
                                 child: ElevatedButton(
                                   onPressed: () {
-                                    widget.cart.addToCart(product.product);
+                                    setState(() {
+                                      widget.cart.addToCart(product.product);
+                                    });
                                   },
                                   child: const Icon(
                                     Icons.add,
@@ -213,7 +215,7 @@ class _ShoppingCartState extends State<ShoppingCart> {
                   child: Align(
                     alignment: Alignment.centerRight,
                     child: Text(
-                      "Totaal: € ${widget.cart.getTotalCost()}"
+                      "Totaal: € ${widget.cart.getTotalCost().toStringAsFixed(2)}"
                     )
                   ),
                 ),

@@ -36,6 +36,15 @@ class ShoppingCartModel {
     shoppingCartProducts.add(ShoppingCartProductModel(null, product, 1));
   }
 
+  int getAmount(ShoppingCartProductModel model) {
+    for (var shoppingCartProduct in shoppingCartProducts) {
+      if (shoppingCartProduct.product.id == model.product.id) {
+        return shoppingCartProduct.amount;
+      }
+    }
+    return 0;
+  }
+
   void removeFromCart(ProductModel product) {
     ShoppingCartProductModel? model;
     for (var shoppingCartProduct in shoppingCartProducts) {
@@ -66,6 +75,10 @@ class ShoppingCartModel {
       total += (product.amount * product.product.price);
     }
     return total;
+  }
+
+  void empty() {
+    shoppingCartProducts = [];
   }
 }
 

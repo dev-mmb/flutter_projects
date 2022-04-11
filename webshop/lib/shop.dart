@@ -1,18 +1,18 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:webshop/account.dart';
 import 'package:webshop/model/shopping_cart_model.dart';
+import 'package:webshop/order_popup.dart';
 import 'package:webshop/shop_items.dart';
 import 'package:webshop/shopping_cart.dart';
-import 'package:webshop/model/shopping_cart_model.dart';
 import 'package:http/http.dart' as http;
 
 import 'model/product_model.dart';
 
 class ShopScreen extends StatefulWidget {
-  ShopScreen(this.token, {Key? key}) : super(key: key);
+  ShopScreen(this.token, this.onLogOut, {Key? key}) : super(key: key);
   String token;
+  Function() onLogOut;
 
   @override
   State<StatefulWidget> createState() => _ShopScreenState();
@@ -20,13 +20,41 @@ class ShopScreen extends StatefulWidget {
 }
 
 class _ShopScreenState extends State<ShopScreen> {
-  List<bool> selectedPage = [true, false, false];
+  List<bool> selectedPage = [true, false];
   ShoppingCartModel cart = ShoppingCartModel("", []);
-
+  bool shouldShowPopup = false;
   void onItemBuy(ProductModel item) {
     setState(() {
       cart.addToCart(item);
     });
+  }
+  void onOrder() {
+    if (cart.shoppingCartProducts.isEmpty) return;
+    setState(() {
+      createOrder(cart).then((value) {
+        cart.empty();
+      });
+      cart.empty();
+    });
+    setSelectedPage(0);
+    showDialog(context: context, builder: (buildcontext) {
+      return const OrderPopup();
+    });
+  }
+  Future<bool> createOrder(ShoppingCartModel shoppingCartModel) async {
+    var response1 = await http.post(
+      Uri.parse("https://limitless-bastion-9783240.herokuapp.com/cart"),
+      body: jsonEncode(shoppingCartModel.toJson()),
+      headers: {"Authorization": "bearer ${widget.token}", "Content-Type": "application/json"}
+    );
+    if (response1.statusCode != 200) {
+      return false;
+    }
+    var response2 = await http.post(
+        Uri.parse("https://limitless-bastion-9783240.herokuapp.com/order"),
+        headers: {"Authorization": "Bearer ${widget.token}"}
+    );
+    return (response2.statusCode == 200);
   }
 
   @override
@@ -35,9 +63,7 @@ class _ShopScreenState extends State<ShopScreen> {
     http.get(Uri.parse("https://limitless-bastion-9783240.herokuapp.com/cart"),
         headers: {"Authorization": "Bearer ${widget.token}"})
         .then((response) {
-          if (response.statusCode != 200) {
-            throw Exception("Something went wrong trying to get shopping cart!");
-          } else {
+          if (response.statusCode == 200) {
             cart = ShoppingCartModel.fromJson(jsonDecode(response.body));
           }
     });
@@ -47,13 +73,12 @@ class _ShopScreenState extends State<ShopScreen> {
     if (selectedPage[0] == true) {
       return ShopItems(onItemBuy);
     } else if (selectedPage[1] == true) {
-      return ShoppingCart(cart, widget.token);
+      return ShoppingCart(cart, widget.token, onOrder);
     }
-    return const Account();
+    return const Text("Could not find page");
   }
 
   void setSelectedPage(int page) {
-
     setState(() {
       for (int i = 0; i < selectedPage.length; i++) {
         if (i == page) {
@@ -96,7 +121,7 @@ class _ShopScreenState extends State<ShopScreen> {
                         child: Center(
                           child: Text(
                             cart.getSize().toString(),
-                            style: TextStyle(fontSize: 10),
+                            style: const TextStyle(fontSize: 10),
                           ),
                         ),
                       ),
@@ -144,7 +169,7 @@ class _ShopScreenState extends State<ShopScreen> {
             ),
             ListTile(
               title: Row(
-                children:  [
+                children: [
                   Image(image: const AssetImage("assets/shopping-cart.png"), fit: BoxFit.fitWidth, width: 35, color: Colors.blue[200]),
                     const Text(
                       "Winkelmand",
@@ -155,6 +180,7 @@ class _ShopScreenState extends State<ShopScreen> {
                   )
                 ],
               ),
+
               selected: selectedPage[1],
               selectedColor: Colors.indigo,
               selectedTileColor: Colors.blue[50],
@@ -164,11 +190,13 @@ class _ShopScreenState extends State<ShopScreen> {
               },
             ),
             ListTile(
+              // key is used for testing the ontap method
+              key: Key("logout"),
               title: Row(
-                children:  [
-                  Image(image: const AssetImage("assets/account.png"), fit: BoxFit.fitWidth, width: 30, color:  Colors.blue[200]),
+                children: [
+                  Image(image: const AssetImage("assets/account.png"), fit: BoxFit.fitWidth, width: 35, color: Colors.blue[200]),
                   const Text(
-                    "Account",
+                    "Log uit",
                     style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 20
@@ -176,12 +204,8 @@ class _ShopScreenState extends State<ShopScreen> {
                   )
                 ],
               ),
-              selected: selectedPage[2],
-              selectedColor: Colors.indigo,
-              selectedTileColor: Colors.blue[50],
               onTap: () {
-                setSelectedPage(2);
-                Navigator.pop(context);
+                widget.onLogOut();
               },
             ),
           ],
