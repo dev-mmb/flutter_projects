@@ -23,6 +23,7 @@ class _ShopScreenState extends State<ShopScreen> {
   List<bool> selectedPage = [true, false];
   ShoppingCartModel cart = ShoppingCartModel("", []);
   bool shouldShowPopup = false;
+
   void onItemBuy(ProductModel item) {
     setState(() {
       cart.addToCart(item);

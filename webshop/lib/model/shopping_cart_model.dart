@@ -56,7 +56,9 @@ class ShoppingCartModel {
     if (model != null) {
       model.amount -= 1;
       if (model.amount <= 0) {
+        print(shoppingCartProducts);
         shoppingCartProducts.remove(model);
+        print(shoppingCartProducts);
       }
     }
   }
